@@ -353,7 +353,7 @@ function bindEvents() {
     }
     accessToken = null;
     showToast('로그아웃 되었어요');
-    showScreen(allVideos.length ? 'screen-main' : 'screen-login');
+    showScreen('screen-login');
   });
 
   els.clientIdMenuBtn.addEventListener('click', () => {
