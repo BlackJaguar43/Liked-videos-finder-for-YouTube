@@ -327,12 +327,6 @@ function bindEvents() {
     }
   });
 
-  els.changeClientIdBtn.addEventListener('click', () => {
-    els.clientIdInput.value = getClientId();
-    els.saveClientIdBtn.disabled = !els.clientIdInput.value.trim();
-    showScreen('screen-setup');
-  });
-
   els.settingsBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     els.settingsMenu.hidden = !els.settingsMenu.hidden;
@@ -356,13 +350,6 @@ function bindEvents() {
     showScreen('screen-login');
   });
 
-  els.clientIdMenuBtn.addEventListener('click', () => {
-    els.settingsMenu.hidden = true;
-    els.clientIdInput.value = getClientId();
-    els.saveClientIdBtn.disabled = !els.clientIdInput.value.trim();
-    showScreen('screen-setup');
-  });
-
   els.syncBtn.addEventListener('click', startSyncFlow);
 
   els.searchInput.addEventListener('input', renderListDebounced);
@@ -374,8 +361,8 @@ function init() {
   [
     'screen-setup', 'screen-login', 'screen-main', 'screen-syncing',
     'clientIdInput', 'saveClientIdBtn', 'originHint',
-    'loginBtn', 'changeClientIdBtn',
-    'settingsBtn', 'settingsMenu', 'resyncMenuBtn', 'logoutMenuBtn', 'clientIdMenuBtn',
+    'loginBtn',
+    'settingsBtn', 'settingsMenu', 'resyncMenuBtn', 'logoutMenuBtn',
     'syncStatus', 'searchInput', 'channelFilter', 'sortSelect', 'resultCount', 'videoList', 'syncBtn',
     'syncingText', 'syncingCount', 'toast',
   ].forEach((id) => (els[id] = $(id)));
