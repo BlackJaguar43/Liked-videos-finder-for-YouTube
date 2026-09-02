@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>좋아요 동영상 찾기</title>
+<link rel="stylesheet" href="styles.css" />
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="app">
+
+    <!-- ===== 설정(클라이언트 ID 입력) 화면 ===== -->
+    <section id="screen-setup" class="screen active">
+      <header class="topbar">
+        <h1>좋아요 동영상 찾기</h1>
+        <p class="subtitle">유튜브에 좋아요 표시한 영상을 빠르게 검색하세요</p>
+      </header>
+
+      <main class="content">
+        <div class="section">
+          <div class="section-title"><span>처음 한 번만 설정하면 돼요</span></div>
+          <ol class="setup-steps">
+            <li><a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Google Cloud Console</a>에서 프로젝트를 만들고 <b>YouTube Data API v3</b>를 사용 설정하세요.</li>
+            <li><a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">사용자 인증 정보</a> 메뉴에서 <b>OAuth 클라이언트 ID</b>(웹 애플리케이션)를 만드세요.</li>
+            <li>승인된 자바스크립트 원본에 <code id="originHint">http://localhost:4174</code> 를 추가하세요.</li>
+            <li>발급된 <b>클라이언트 ID</b>를 아래에 붙여넣으세요.</li>
+          </ol>
+          <input type="text" id="clientIdInput" class="text-input" placeholder="xxxxxxxx.apps.googleusercontent.com" />
+          <p class="hint-text">클라이언트 ID는 이 브라우저에만 저장되며 외부로 전송되지 않아요.</p>
+        </div>
+        <div class="bottom-spacer"></div>
+      </main>
+
+      <div class="bottom-bar">
+        <button type="button" id="saveClientIdBtn" class="primary-btn" disabled>저장하고 시작하기</button>
+      </div>
+    </section>
+
+    <!-- ===== 로그인 화면 ===== -->
+    <section id="screen-login" class="screen">
+      <header class="topbar">
+        <h1>좋아요 동영상 찾기</h1>
+        <p class="subtitle">Google 계정으로 로그인하고<br />좋아요 목록을 불러오세요</p>
+      </header>
+      <main class="content center-content">
+        <div class="login-icon">▶</div>
+        <button type="button" id="loginBtn" class="primary-btn wide-btn">Google로 로그인</button>
+        <button type="button" id="changeClientIdBtn" class="link-btn">클라이언트 ID 변경</button>
+      </main>
+    </section>
+
+    <!-- ===== 메인(검색) 화면 ===== -->
+    <section id="screen-main" class="screen">
+      <header class="topbar main-topbar">
+        <div class="topbar-row">
+          <h1>좋아요 동영상 찾기</h1>
+          <button type="button" id="settingsBtn" class="icon-btn" title="설정">⋮</button>
+        </div>
+        <div class="sync-status" id="syncStatus">아직 동기화하지 않았어요</div>
+      </header>
+
+      <div class="search-bar">
+        <input type="text" id="searchInput" class="search-input" placeholder="제목 또는 채널명으로 검색" />
+        <select id="channelFilter" class="channel-select">
+          <option value="">모든 채널</option>
+        </select>
+        <select id="sortSelect" class="channel-select">
+          <option value="recent">최근 좋아요순</option>
+          <option value="oldest">오래된 좋아요순</option>
+          <option value="title">제목순</option>
+          <option value="channel">채널순</option>
+        </select>
+      </div>
+
+      <div class="result-count" id="resultCount"></div>
+
+      <main class="content video-list" id="videoList"></main>
+
+      <div class="bottom-bar">
+        <button type="button" id="syncBtn" class="primary-btn">전체 동기화</button>
+      </div>
+    </section>
+
+    <!-- ===== 동기화 진행 화면 ===== -->
+    <section id="screen-syncing" class="screen">
+      <div class="loading-wrap">
+        <div class="spinner"></div>
+        <div class="loading-text" id="syncingText">좋아요 목록을 불러오는 중...</div>
+        <div class="loading-sub" id="syncingCount">0개</div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="settings-menu" id="settingsMenu" hidden>
+    <button type="button" id="resyncMenuBtn" class="menu-item">전체 동기화</button>
+    <button type="button" id="logoutMenuBtn" class="menu-item">로그아웃</button>
+    <button type="button" id="clientIdMenuBtn" class="menu-item">클라이언트 ID 변경</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
