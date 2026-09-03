@@ -195,17 +195,6 @@ html, body {
   padding: 8px;
 }
 
-.login-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  color: #fff;
-}
 
 .icon-btn {
   background: none;
