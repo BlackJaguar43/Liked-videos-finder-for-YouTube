@@ -420,9 +420,9 @@ h1.mega .red {
 .video-card::after {
   content: counter(item, decimal-leading-zero);
   position: absolute;
-  right: 20px;
-  top: 10px;
-  font-size: 34px;
+  right: 18px;
+  top: 12px;
+  font-size: 24px;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.05);
   letter-spacing: -0.05em;
@@ -445,7 +445,8 @@ h1.mega .red {
 }
 .video-info {
   min-width: 0;
-  padding-right: 34px;
+  /* keeps the title clear of the 01 / 02 ... number, even for 4 digits */
+  padding-right: 76px;
 }
 .video-title {
   font-size: 17px;

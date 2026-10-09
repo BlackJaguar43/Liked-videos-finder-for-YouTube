@@ -88,7 +88,10 @@ function ensureTokenClient(clientId) {
           tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: clientId,
             scope: SCOPE,
-            callback: () => {},
+            callback: handleTokenResponse,
+            // fires when the popup is closed or blocked; without it the
+            // request would never settle and the login button would hang
+            error_callback: handleTokenError,
           });
           tokenClient._clientId = clientId;
         }
@@ -105,23 +108,53 @@ function ensureTokenClient(clientId) {
   });
 }
 
+// The one login attempt currently waiting for the Google popup (if any).
+let pendingLogin = null;
+
+function settleLogin(fn, value) {
+  const p = pendingLogin;
+  pendingLogin = null;
+  if (p) p[fn](value);
+}
+
+function handleTokenResponse(resp) {
+  if (resp && resp.error) {
+    settleLogin('reject', new Error(resp.error_description || resp.error));
+    return;
+  }
+  accessToken = resp.access_token;
+  settleLogin('resolve', accessToken);
+}
+
+function handleTokenError(err) {
+  const type = err && err.type;
+  const e = new Error(
+    type === 'popup_closed' ? '로그인 창이 닫혔어요. 다시 시도해주세요.'
+    : type === 'popup_failed_to_open' ? '로그인 창이 열리지 않았어요. 팝업 차단을 해제하고 다시 시도해주세요.'
+    : '로그인에 실패했어요. 다시 시도해주세요.'
+  );
+  e.code = type || 'unknown';
+  settleLogin('reject', e);
+}
+
+// Starts a Google sign-in. Safe to call again at any time: a new attempt
+// replaces an older one that is still waiting (its promise is rejected with
+// code 'superseded', which callers ignore).
 async function requestAccessToken() {
   const clientId = getClientId();
   if (!clientId) throw new Error('클라이언트 ID가 설정되지 않았어요.');
   const client = await ensureTokenClient(clientId);
+  if (pendingLogin) {
+    const old = new Error('superseded');
+    old.code = 'superseded';
+    settleLogin('reject', old);
+  }
   return new Promise((resolve, reject) => {
-    client.callback = (resp) => {
-      if (resp.error) {
-        reject(new Error(resp.error_description || resp.error));
-        return;
-      }
-      accessToken = resp.access_token;
-      resolve(accessToken);
-    };
+    pendingLogin = { resolve, reject };
     try {
       client.requestAccessToken({ prompt: '' });
     } catch (e) {
-      reject(e);
+      settleLogin('reject', e);
     }
   });
 }
@@ -419,16 +452,16 @@ function bindEvents() {
     showScreen(allVideos.length ? 'screen-main' : 'screen-login');
   });
 
+  // Never disabled: whether the popup is closed, blocked or the login fails,
+  // the button can be pressed again immediately.
   els.loginBtn.addEventListener('click', async () => {
-    els.loginBtn.disabled = true;
     try {
       await requestAccessToken();
-      await performSync();
     } catch (e) {
-      showToast('로그인 실패: ' + e.message);
-    } finally {
-      els.loginBtn.disabled = false;
+      if (e.code !== 'superseded') showToast(e.message);
+      return;
     }
+    await performSync();
   });
 
   els.logoutBtn.addEventListener('click', logout);
