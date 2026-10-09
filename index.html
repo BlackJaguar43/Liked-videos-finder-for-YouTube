@@ -3,81 +3,98 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>좋아요 동영상 찾기</title>
+<title>YouTube Liked videos finder</title>
 <link rel="stylesheet" href="styles.css" />
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <div class="app">
 
+    <header class="top">
+      <div class="logo">YouTube Liked videos finder</div>
+      <span class="tag">● 데이터는 내 브라우저에만 저장</span>
+    </header>
+
     <!-- ===== 설정(클라이언트 ID 입력) 화면 ===== -->
     <section id="screen-setup" class="screen active">
-      <header class="topbar">
-        <h1>좋아요 동영상 찾기</h1>
-        <p class="subtitle">유튜브에 좋아요 표시한 영상을 빠르게 검색하세요</p>
-      </header>
-
-      <main class="content">
-        <div class="section">
-          <div class="section-title"><span>처음 한 번만 설정하면 돼요</span></div>
-          <ol class="setup-steps">
-            <li><a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Google Cloud Console</a>에서 프로젝트를 만들고 <b>YouTube Data API v3</b>를 사용 설정하세요.</li>
-            <li><a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">사용자 인증 정보</a> 메뉴에서 <b>OAuth 클라이언트 ID</b>(웹 애플리케이션)를 만드세요.</li>
-            <li>승인된 자바스크립트 원본에 <code id="originHint">http://localhost:4174</code> 를 추가하세요.</li>
-            <li>발급된 <b>클라이언트 ID</b>를 아래에 붙여넣으세요.</li>
-          </ol>
-          <input type="text" id="clientIdInput" class="text-input" placeholder="xxxxxxxx.apps.googleusercontent.com" />
-          <p class="hint-text">클라이언트 ID는 이 브라우저에만 저장되며 외부로 전송되지 않아요.</p>
-        </div>
-        <div class="bottom-spacer"></div>
-      </main>
-
-      <div class="bottom-bar">
+      <div class="wrap narrow">
+        <div class="kicker">Setup</div>
+        <h2 class="page-title">처음 한 번만<br /><span class="outline">설정하세요</span></h2>
+        <ol class="setup-steps">
+          <li><a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Google Cloud Console</a>에서 프로젝트를 만들고 <b>YouTube Data API v3</b>를 사용 설정하세요.</li>
+          <li><a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">사용자 인증 정보</a> 메뉴에서 <b>OAuth 클라이언트 ID</b>(웹 애플리케이션)를 만드세요.</li>
+          <li>승인된 자바스크립트 원본에 <code id="originHint">http://localhost:4174</code> 를 추가하세요.</li>
+          <li>발급된 <b>클라이언트 ID</b>를 아래에 붙여넣으세요.</li>
+        </ol>
+        <input type="text" id="clientIdInput" class="text-input" placeholder="xxxxxxxx.apps.googleusercontent.com" />
+        <p class="hint-text">클라이언트 ID는 이 브라우저에만 저장되며 외부로 전송되지 않아요.</p>
         <button type="button" id="saveClientIdBtn" class="primary-btn" disabled>저장하고 시작하기</button>
       </div>
     </section>
 
     <!-- ===== 로그인 화면 ===== -->
     <section id="screen-login" class="screen">
-      <header class="topbar">
-        <h1>좋아요 동영상 찾기</h1>
-        <p class="subtitle">Google 계정으로 로그인하고<br />좋아요 목록을 불러오세요</p>
-      </header>
-      <main class="content center-content">
-        <button type="button" id="loginBtn" class="primary-btn wide-btn">Google로 로그인</button>
-      </main>
+      <div class="wrap hero">
+        <div class="kicker">YouTube · Liked videos search</div>
+        <h1 class="mega">Search<br />your YouTube<br /><span class="red">liked videos</span></h1>
+        <div class="hero-row">
+          <p>좋아요 눌렀던 그때 그 영상, 이제는 쉽게 검색하세요.<br />이제 제목 한 줄이면 다시 찾을 수 있어요.</p>
+          <button type="button" id="loginBtn" class="login-btn">Google로 로그인 <i>→</i></button>
+        </div>
+        <div class="stats">
+          <div><b>Unlimited</b><span>제한없는 영상 검색</span></div>
+          <div><b>Video + Shorts</b><span>일반 영상과 쇼츠를 구분하여 보여줘요</span></div>
+          <div><b>Private</b><span>개인 정보를 저장하지 않아요</span></div>
+          <div><b>문의</b><span>Insta : jason_oing</span></div>
+        </div>
+      </div>
     </section>
 
     <!-- ===== 메인(검색) 화면 ===== -->
     <section id="screen-main" class="screen">
-      <header class="topbar main-topbar">
-        <div class="topbar-row">
-          <h1>좋아요 동영상 찾기</h1>
-          <button type="button" id="settingsBtn" class="icon-btn" title="설정">⋮</button>
+      <div class="wrap">
+        <div class="lib-top">
+          <h2 class="page-title">Liked<br />videos</h2>
+          <div class="big">
+            <b id="resultNum">0</b>
+            <span id="resultCount"></span>
+            <span class="sync-status" id="syncStatus">아직 동기화하지 않았어요</span>
+          </div>
         </div>
-        <div class="sync-status" id="syncStatus">아직 동기화하지 않았어요</div>
-      </header>
 
-      <div class="search-bar">
-        <input type="text" id="searchInput" class="search-input" placeholder="제목 또는 채널명으로 검색" />
-        <select id="channelFilter" class="channel-select">
-          <option value="">모든 채널</option>
-        </select>
-        <select id="sortSelect" class="channel-select">
-          <option value="recent">최근 좋아요순</option>
-          <option value="oldest">오래된 좋아요순</option>
-          <option value="title">제목순</option>
-          <option value="channel">채널순</option>
-        </select>
+        <div class="bar">
+          <label class="search">
+            <span aria-hidden="true">⌕</span>
+            <input type="text" id="searchInput" placeholder="제목 또는 채널명으로 검색" />
+          </label>
+          <label class="sel-wrap">
+            <span class="sel-text" id="channelFilterText">모든 채널</span><svg class="sel-arrow" viewBox="0 0 12 8" width="12" height="8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <select id="channelFilter" class="sel" aria-label="채널 필터">
+              <option value="">모든 채널</option>
+            </select>
+          </label>
+          <label class="sel-wrap">
+            <span class="sel-text" id="sortSelectText">최근 좋아요순</span><svg class="sel-arrow" viewBox="0 0 12 8" width="12" height="8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <select id="sortSelect" class="sel" aria-label="정렬">
+              <option value="recent">최근 좋아요순</option>
+              <option value="oldest">오래된 좋아요순</option>
+              <option value="title">제목순</option>
+              <option value="channel">채널순</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="kind-tabs" id="kindTabs" role="tablist" aria-label="영상 종류">
+          <button type="button" class="on" data-kind="all">전체 <i>0</i></button>
+          <button type="button" data-kind="video">일반 영상 <i>0</i></button>
+          <button type="button" data-kind="short">Shorts <i>0</i></button>
+          <button type="button" id="logoutBtn" class="logout-btn">로그아웃</button>
+        </div>
+
+        <main class="video-list" id="videoList"></main>
       </div>
 
-      <div class="result-count" id="resultCount"></div>
-
-      <main class="content video-list" id="videoList"></main>
-
-      <div class="bottom-bar">
-        <button type="button" id="syncBtn" class="primary-btn">전체 동기화</button>
-      </div>
+      <p class="foot-note">클릭하면 유튜브로 연결돼요</p>
     </section>
 
     <!-- ===== 동기화 진행 화면 ===== -->
@@ -89,11 +106,6 @@
       </div>
     </section>
 
-  </div>
-
-  <div class="settings-menu" id="settingsMenu" hidden>
-    <button type="button" id="resyncMenuBtn" class="menu-item">전체 동기화</button>
-    <button type="button" id="logoutMenuBtn" class="menu-item">로그아웃</button>
   </div>
 
   <div class="toast" id="toast"></div>

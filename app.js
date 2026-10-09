@@ -13,6 +13,7 @@ const DEFAULT_CLIENT_ID = '1001754550036-02mep0n7rgqkm93g1hkbc0agqqtkm6qg.apps.g
 let allVideos = [];
 let accessToken = null;
 let tokenClient = null;
+let typeFilter = 'all'; // 'all' | 'video' | 'short'
 
 const $ = (id) => document.getElementById(id);
 
@@ -66,11 +67,11 @@ function loadCachedVideos() {
 function updateSyncStatus() {
   const last = localStorage.getItem(LS_LAST_SYNC);
   if (!last) {
-    els.syncStatus.textContent = allVideos.length ? `총 ${allVideos.length}개` : '아직 동기화하지 않았어요';
+    els.syncStatus.textContent = '아직 동기화하지 않았어요';
     return;
   }
   const d = new Date(Number(last));
-  els.syncStatus.textContent = `총 ${allVideos.length}개 · ${d.toLocaleString('ko-KR')} 동기화`;
+  els.syncStatus.textContent = `${d.toLocaleString('ko-KR')} 동기화`;
 }
 
 // ---------- Google OAuth ----------
@@ -168,6 +169,57 @@ async function fetchAllLiked(onProgress) {
   return videos;
 }
 
+// ---------- Shorts vs regular video ----------
+// The YouTube Data API has no "is Short" field. oEmbed, asked about the
+// /shorts/<id> URL, reports a portrait player (height > width) for Shorts and
+// a landscape one for regular videos, and it allows cross-origin requests.
+// Returns 'short' | 'video' | null (unknown: private/deleted or request failed).
+
+async function probeKind(videoId) {
+  const url = 'https://www.youtube.com/oembed?format=json&url=' +
+    encodeURIComponent('https://www.youtube.com/shorts/' + videoId);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const j = await res.json();
+        if (j.width && j.height) return j.height > j.width ? 'short' : 'video';
+        return null;
+      }
+      // 4xx (private, removed, invalid id...) will not change on retry; only 429/5xx may.
+      if (res.status >= 400 && res.status < 500 && res.status !== 429) return null;
+    } catch {
+      // network hiccup: retry once below
+    }
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  return null;
+}
+
+// Fills v.kind for every video. A kind never changes once known, so kinds
+// already in the cache are reused and only new videos are probed.
+async function classifyKinds(videos, onProgress) {
+  const known = new Map();
+  for (const v of allVideos) if (v.kind) known.set(v.videoId, v.kind);
+  const todo = [];
+  for (const v of videos) {
+    v.kind = known.get(v.videoId) || null;
+    if (!v.kind && !v.unavailable && v.videoId) todo.push(v);
+  }
+  let done = 0;
+  const queue = todo.slice();
+  const worker = async () => {
+    while (queue.length) {
+      const v = queue.shift();
+      v.kind = await probeKind(v.videoId);
+      done++;
+      if (onProgress) onProgress(done, todo.length);
+    }
+  };
+  await Promise.all(Array.from({ length: 10 }, worker));
+  return { total: todo.length, failed: todo.filter((v) => !v.kind).length };
+}
+
 // ---------- Rendering ----------
 
 function populateChannelFilter() {
@@ -197,11 +249,21 @@ function renderCard(v) {
     <img class="video-thumb" src="${escapeHtml(v.thumbnail || '')}" loading="lazy" alt="" />
     <div class="video-info">
       <div class="video-title">${escapeHtml(v.title || '(제목 없음)')}</div>
-      <div class="video-channel">${escapeHtml(v.channelTitle || '')}</div>
+      ${v.kind === 'short' ? '<span class="video-kind">SHORTS</span>' : ''}<div class="video-channel">${escapeHtml(v.channelTitle || '')}</div>
       <div class="video-date">${v.likedAt ? formatDate(v.likedAt) : ''}</div>
     </div>
   `;
   return a;
+}
+
+// "전체 / 일반 / Shorts" tabs with counts for the whole synced list.
+function updateKindTabs() {
+  const counts = { all: allVideos.length, video: 0, short: 0 };
+  for (const v of allVideos) if (v.kind) counts[v.kind]++;
+  els.kindTabs.querySelectorAll('[data-kind]').forEach((b) => {
+    b.classList.toggle('on', b.dataset.kind === typeFilter);
+    b.querySelector('i').textContent = counts[b.dataset.kind];
+  });
 }
 
 let renderTimer = null;
@@ -210,12 +272,21 @@ function renderListDebounced() {
   renderTimer = setTimeout(renderList, 120);
 }
 
+// The visible text inside each filter box mirrors the selected <option>.
+function syncSelectText() {
+  const label = (sel) => (sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '');
+  els.channelFilterText.textContent = label(els.channelFilter);
+  els.sortSelectText.textContent = label(els.sortSelect);
+}
+
 function renderList() {
+  syncSelectText();
   const q = els.searchInput.value.trim().toLowerCase();
   const channel = els.channelFilter.value;
   const sort = els.sortSelect.value;
 
   let filtered = allVideos.map((v, i) => Object.assign({ _i: i }, v));
+  if (typeFilter !== 'all') filtered = filtered.filter((v) => v.kind === typeFilter);
   if (channel) filtered = filtered.filter((v) => (v.channelTitle || '(알 수 없음)') === channel);
   if (q) {
     filtered = filtered.filter((v) =>
@@ -240,13 +311,16 @@ function renderList() {
       filtered.sort((a, b) => a._i - b._i);
   }
 
-  els.resultCount.textContent = allVideos.length ? `${filtered.length}개 / 전체 ${allVideos.length}개` : '';
+  updateKindTabs();
+  // Always the total number of liked videos, regardless of search/filter/tab.
+  els.resultNum.textContent = allVideos.length;
+  els.resultCount.textContent = allVideos.length ? `검색된 영상 · 총 ${allVideos.length}개` : '';
 
   els.videoList.innerHTML = '';
   if (!filtered.length) {
     const msg = allVideos.length
       ? '검색 결과가 없어요'
-      : '아직 불러온 영상이 없어요.<br />아래 "전체 동기화"를 눌러 좋아요 목록을 불러오세요.';
+      : '좋아요한 영상이 아직 없어요.';
     els.videoList.innerHTML = `<div class="empty-state">${msg}</div>`;
     return;
   }
@@ -265,6 +339,11 @@ async function performSync() {
     const videos = await fetchAllLiked((count) => {
       els.syncingCount.textContent = `${count}개 불러옴`;
     });
+    els.syncingText.textContent = 'Shorts / 일반 영상을 구분하는 중...';
+    els.syncingCount.textContent = `${videos.length}개 불러옴`;
+    const kinds = await classifyKinds(videos, (done, total) => {
+      els.syncingCount.textContent = `${done} / ${total}`;
+    });
     allVideos = videos;
     localStorage.setItem(LS_VIDEOS, JSON.stringify(videos));
     localStorage.setItem(LS_LAST_SYNC, String(Date.now()));
@@ -272,7 +351,11 @@ async function performSync() {
     renderList();
     updateSyncStatus();
     showScreen('screen-main');
-    showToast(`${videos.length}개의 좋아요 영상을 불러왔어요`);
+    if (kinds.total && kinds.failed > kinds.total / 2) {
+      showToast('영상 종류를 확인하지 못한 항목이 많아요. 잠시 후 다시 동기화해보세요');
+    } else {
+      showToast(`${videos.length}개의 좋아요 영상을 불러왔어요`);
+    }
   } catch (e) {
     if (e.status === 401) {
       accessToken = null;
@@ -296,6 +379,27 @@ async function startSyncFlow() {
   } catch (e) {
     showToast('로그인 실패: ' + e.message);
   }
+}
+
+// Revoke the Google token and wipe everything this app stored about the
+// signed-in user (cached list + last-sync time), so the next visitor on a
+// shared device sees nothing.
+function logout() {
+  if (accessToken && window.google && google.accounts && google.accounts.oauth2) {
+    google.accounts.oauth2.revoke(accessToken, () => {});
+  }
+  accessToken = null;
+  localStorage.removeItem(LS_VIDEOS);
+  localStorage.removeItem(LS_LAST_SYNC);
+  allVideos = [];
+  els.searchInput.value = '';
+  els.sortSelect.value = 'recent';
+  typeFilter = 'all';
+  populateChannelFilter();
+  renderList();
+  updateSyncStatus();
+  showToast('로그아웃 되었고 저장된 데이터를 삭제했어요');
+  showScreen('screen-login');
 }
 
 // ---------- Setup / events ----------
@@ -327,34 +431,17 @@ function bindEvents() {
     }
   });
 
-  els.settingsBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    els.settingsMenu.hidden = !els.settingsMenu.hidden;
-  });
-  document.addEventListener('click', () => {
-    els.settingsMenu.hidden = true;
-  });
-
-  els.resyncMenuBtn.addEventListener('click', () => {
-    els.settingsMenu.hidden = true;
-    startSyncFlow();
-  });
-
-  els.logoutMenuBtn.addEventListener('click', () => {
-    els.settingsMenu.hidden = true;
-    if (accessToken && window.google && google.accounts && google.accounts.oauth2) {
-      google.accounts.oauth2.revoke(accessToken, () => {});
-    }
-    accessToken = null;
-    showToast('로그아웃 되었어요');
-    showScreen('screen-login');
-  });
-
-  els.syncBtn.addEventListener('click', startSyncFlow);
+  els.logoutBtn.addEventListener('click', logout);
 
   els.searchInput.addEventListener('input', renderListDebounced);
   els.channelFilter.addEventListener('change', renderList);
   els.sortSelect.addEventListener('change', renderList);
+  els.kindTabs.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-kind]');
+    if (!b) return;
+    typeFilter = b.dataset.kind;
+    renderList();
+  });
 }
 
 function init() {
@@ -362,8 +449,7 @@ function init() {
     'screen-setup', 'screen-login', 'screen-main', 'screen-syncing',
     'clientIdInput', 'saveClientIdBtn', 'originHint',
     'loginBtn',
-    'settingsBtn', 'settingsMenu', 'resyncMenuBtn', 'logoutMenuBtn',
-    'syncStatus', 'searchInput', 'channelFilter', 'sortSelect', 'resultCount', 'videoList', 'syncBtn',
+    'syncStatus', 'searchInput', 'channelFilter', 'sortSelect', 'channelFilterText', 'sortSelectText', 'kindTabs', 'resultNum', 'resultCount', 'videoList', 'logoutBtn',
     'syncingText', 'syncingCount', 'toast',
   ].forEach((id) => (els[id] = $(id)));
 
