@@ -763,11 +763,14 @@ a.logo {
   .hero {
     padding-top: 48px;
   }
-  /* phone cards keep the desktop layout: small thumbnail on the left, text on the right */
+  /* phone cards keep the desktop layout (small thumbnail left, text right) and are
+     all exactly the same size: fixed height, a title slot that is always two lines
+     tall, one row for badge + channel, one row for the date */
   .video-card {
     gap: 12px;
     padding: 10px;
     border-radius: 18px;
+    height: 112px;
   }
   .video-card::after {
     font-size: 18px;
@@ -779,25 +782,47 @@ a.logo {
     border-radius: 10px;
   }
   .video-info {
+    flex: 1;
+    align-self: stretch;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-content: center;
     padding-right: 0;
+    overflow: hidden;
   }
   .video-title {
+    grid-column: 1 / -1;
+    grid-row: 1;
     font-size: 14px;
+    line-height: 1.35;
+    min-height: 2.7em;
     margin-bottom: 8px;
     padding-right: 46px; /* keeps the first lines clear of the 01 / 02 ... number */
   }
-  .video-channel {
-    font-size: 11px;
-    padding: 2px 8px;
-    margin-right: 6px;
-  }
-  .video-date {
-    font-size: 11px;
-    margin-left: 0;
-  }
   .video-kind {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: center;
     font-size: 10px;
     padding: 2px 6px;
+    margin-right: 6px;
+  }
+  .video-channel {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+    justify-self: start;
+    max-width: 100%;
+    font-size: 11px;
+    padding: 2px 8px;
+    margin-right: 0;
+  }
+  .video-date {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    font-size: 11px;
+    line-height: 1.3;
+    margin: 6px 0 0;
   }
   .sel-wrap {
     flex: 1 1 calc(50% - 5px);
@@ -807,29 +832,31 @@ a.logo {
   .sel-text {
     max-width: 100%;
   }
-  /* keep 전체 / 일반 / Shorts / 로그아웃 on one line */
+  /* keep 전체 / 일반 / Shorts / 로그아웃 on one line, even with 4-digit counts (1,709 videos) */
   .kind-tabs {
     flex-wrap: nowrap;
-    gap: 6px;
+    gap: 5px;
   }
   .kind-tabs button {
-    padding: 8px 10px;
-    font-size: 12px;
+    padding: 7px 8px;
+    font-size: 11px;
     white-space: nowrap;
   }
   .kind-tabs button i {
-    margin-left: 3px;
+    margin-left: 2px;
   }
 }
 @media (max-width: 359px) {
   .video-thumb {
     width: 96px;
   }
+  /* very narrow phones: let the tab row wrap instead of overflowing */
   .kind-tabs {
-    gap: 4px;
+    flex-wrap: wrap;
+    gap: 6px 4px;
   }
   .kind-tabs button {
-    padding: 8px 7px;
+    padding: 7px 8px;
     font-size: 11px;
   }
 }
