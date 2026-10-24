@@ -239,6 +239,12 @@ h1.mega .red {
   font-size: 12.5px;
   color: var(--muted);
 }
+.seo + .legal {
+  margin-top: 72px;
+  max-width: none;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
 .legal a {
   color: var(--ink);
   text-decoration: underline;
@@ -328,6 +334,7 @@ a.logo {
   margin-bottom: 16px;
 }
 .seo p {
+  max-width: none;
   margin-bottom: 14px;
 }
 .seo b {
@@ -365,43 +372,6 @@ a.logo {
   background: var(--red-solid);
 }
 .seo-en {
-  color: var(--muted);
-  font-size: 14px;
-}
-.seo-steps {
-  list-style: none;
-  counter-reset: step;
-  display: grid;
-  gap: 14px;
-}
-.seo-steps li {
-  counter-increment: step;
-  position: relative;
-  padding: 16px 18px 16px 62px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--panel);
-  line-height: 1.6;
-}
-.seo-steps li::before {
-  content: counter(step);
-  position: absolute;
-  left: 18px;
-  top: 16px;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--red-solid);
-  color: #fff;
-  font-weight: 800;
-  display: grid;
-  place-items: center;
-}
-.seo-steps b {
-  display: block;
-  font-size: 16px;
-}
-.seo-steps span {
   color: var(--muted);
   font-size: 14px;
 }
