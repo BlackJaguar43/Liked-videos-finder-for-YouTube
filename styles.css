@@ -763,16 +763,41 @@ a.logo {
   .hero {
     padding-top: 48px;
   }
+  /* phone cards keep the desktop layout: small thumbnail on the left, text on the right */
   .video-card {
-    flex-direction: column;
-    align-items: stretch;
     gap: 12px;
+    padding: 10px;
+    border-radius: 18px;
+  }
+  .video-card::after {
+    font-size: 18px;
+    top: 10px;
+    right: 12px;
   }
   .video-thumb {
-    width: 100%;
+    width: 112px;
+    border-radius: 10px;
   }
   .video-info {
-    padding: 0 6px 6px;
+    padding-right: 0;
+  }
+  .video-title {
+    font-size: 14px;
+    margin-bottom: 8px;
+    padding-right: 46px; /* keeps the first lines clear of the 01 / 02 ... number */
+  }
+  .video-channel {
+    font-size: 11px;
+    padding: 2px 8px;
+    margin-right: 6px;
+  }
+  .video-date {
+    font-size: 11px;
+    margin-left: 0;
+  }
+  .video-kind {
+    font-size: 10px;
+    padding: 2px 6px;
   }
   .sel-wrap {
     flex: 1 1 calc(50% - 5px);
@@ -797,6 +822,9 @@ a.logo {
   }
 }
 @media (max-width: 359px) {
+  .video-thumb {
+    width: 96px;
+  }
   .kind-tabs {
     gap: 4px;
   }
